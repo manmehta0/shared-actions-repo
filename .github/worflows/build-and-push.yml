@@ -1,0 +1,44 @@
+name: Build and Push Docker Image
+
+on:
+  workflow_call:
+    inputs:
+      ecr-repo-uri:
+        required: true
+        type: string
+      dockerfile-path:
+        required: true
+        type: string
+      context-path:
+        required: true
+        type: string
+    secrets:
+      required:
+        - AWS_ACCESS_KEY_ID
+        - AWS_SECRET_ACCESS_KEY
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-1
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build and push Docker image
+        run: |
+          docker build -t ${{ inputs.ecr-repo-uri }}:latest -f ${{ inputs.dockerfile-path }} ${{ inputs.context-path }}
+          docker push ${{ inputs.ecr-repo-uri }}:latest
